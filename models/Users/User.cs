@@ -1,0 +1,19 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity;
+
+namespace complaints_back.models.Users
+{
+    public class User : IdentityUser
+    {
+        public required string DisplayName { get; set; }
+        
+        public string Role { get; set; } = "User";
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public string? AccessToken { get; set; } = null;
+       
+
+    }
+}
