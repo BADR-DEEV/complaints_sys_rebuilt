@@ -13,6 +13,8 @@ namespace complaints_back.DTOs
         public string Role { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? AccessToken { get; set; } = null;
+        public string? RefreshToken { get; set; }
+        public DateTime RefreshTokenExpiryTime { get; set; }
 
     }
 }

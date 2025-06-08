@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using complaints_back.Dtos;
+using complaints_back.DTOs;
 using FluentValidation;
 
 namespace complaints_back.Validations
@@ -24,6 +25,18 @@ namespace complaints_back.Validations
         {
             RuleFor(x => x.Email).NotEmpty().EmailAddress().WithMessage("Email is required").NotNull();
             RuleFor(x => x.Password).NotEmpty().MinimumLength(6).WithMessage("Password is required").Length(6, 100).NotNull();
+        }
+
+    }
+
+     public class ComplaintUserValidation : AbstractValidator<AddComplaintDto>
+    {
+        public ComplaintUserValidation()
+        {
+            RuleFor(x => x.title).NotEmpty().WithMessage("title is Required").NotNull();
+            RuleFor(x => x.CategoryId).NotEmpty().WithMessage("Category is Required").NotNull();
+
+            // RuleFor(x => x.description).NotEmpty().MinimumLength(6).WithMessage("Password is required").Length(6, 100).NotNull();
         }
 
     }

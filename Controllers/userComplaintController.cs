@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace complaints_back.Controllers
 {
     [ApiController]
+    [Authorize(Roles = "Admin, User")]
     [Route("api/[controller]")]
     public class userComplaints : ControllerBase
     {
@@ -28,6 +30,6 @@ namespace complaints_back.Controllers
         }
 
         // Add more methods as needed for handling user complaints
-        
+
     }
 }

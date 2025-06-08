@@ -20,6 +20,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace complaints_back.Controllers
 {
+
     [ApiController]
     [Route("api/[controller]")]
     public class AuthController : Controller
@@ -59,39 +60,109 @@ namespace complaints_back.Controllers
 
         [HttpGet("confirm")]
         [AllowAnonymous]
-        public async Task<IActionResult> ConfirmEmail(string email, string token)
+        public async Task<IActionResult> ConfirmEmailAsync(string email, string token)
         {
-            string decodedToken = WebUtility.UrlDecode(token);
+            var response = new ServiceResponse<UserResponseDto>();
+
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(token))
             {
-                return BadRequest("Email or token is missing.");
+                response.Success = false;
+                response.Message = "Email or token is missing.";
+                response.StatusCode = 400;
             }
 
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null)
             {
-                return NotFound("User not found.");
+                response.Success = false;
+                response.Message = "User not found.";
+                response.StatusCode = 404;
+
             }
 
+            string decodedToken = WebUtility.UrlDecode(token);
             var confirmResult = await _userManager.ConfirmEmailAsync(user, decodedToken);
+
             if (!confirmResult.Succeeded)
             {
-                return BadRequest("Email confirmation failed.");
+                response.Success = false;
+                response.Message = "Email confirmation failed.";
+                response.StatusCode = 400;
             }
 
-            // Unlock user to allow login
             user.LockoutEnd = null;
             user.LockoutEnabled = false;
             await _userManager.UpdateAsync(user);
 
-            // Generate JWT token now for authenticated user (optional if needed in app)
             var jwtToken = await _AuthenticateUserService.GenerateJwtToken(user);
 
+            response.Success = true;
+            response.Message = "Email confirmed successfully.";
+            response.StatusCode = 200;
+            response.Data = new UserResponseDto
+            {
+                Email = user.Email,
+                DisplayName = user.DisplayName,
+                Role = user.Role,
+                CreatedAt = user.CreatedAt,
+                AccessToken = jwtToken
+            };
+
+
             // Build the deep link with token (you may want to URL encode the token again)
-            var appDeepLink = $"complaintsapp://confirm-email?email={WebUtility.UrlEncode(email)}&token={WebUtility.UrlEncode(token)}&jwt={WebUtility.UrlEncode(jwtToken)}";
+            var appDeepLink = $"complaintsapp://confirm-email?email={WebUtility.UrlEncode(email)}&token={WebUtility.UrlEncode(token)}&jwt={WebUtility.UrlEncode(jwtToken)}&response={response}";
 
             // Redirect to the Flutter app via deep link
             return Redirect(appDeepLink);
+
         }
+
+
+
+
+        [HttpPost("refreshToken")]
+        [AllowAnonymous]
+        public async Task<IActionResult> RefreshToken(TokenApiModel model)
+        {
+            var _getPrinc = new GetPrincipalFromExpiredToken();
+
+            var principal = _getPrinc.GetPrincipal(model.AccessToken, _Configuration);
+
+            var email = principal?.FindFirst(ClaimTypes.Email)?.Value;
+
+
+            if (email == null)
+            {
+                return Unauthorized(new { message = "The email was not found from the provided token" });
+
+            }
+            else
+            {
+                var user = await _userManager.FindByEmailAsync(email);
+
+
+                if (user == null || user.RefreshToken != model.RefreshToken)
+                {
+
+                    return Unauthorized(new { message = $"Invalid refresh token {user.Email}........ {user.RefreshToken}........ {user.RefreshTokenExpiryTime}" });
+                }
+
+                var newAccessToken = await _AuthenticateUserService.GenerateJwtToken(user);
+                var newRefreshToken = _AuthenticateUserService.GenerateRefreshToken();
+
+                user.RefreshToken = newRefreshToken;
+                user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+                await _userManager.UpdateAsync(user);
+
+                return Ok(new
+                {
+                    AccessToken = newAccessToken,
+                    RefreshToken = newRefreshToken
+                });
+            }
+        }
+
+
+
     }
 }

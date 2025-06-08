@@ -14,6 +14,12 @@ namespace complaints_back.models.Complaints
         public string ComplainDescription { get; set; } = string.Empty;
         public DateTime ComplainDateTime { get; set; } = DateTime.Now;
         public ComplainStatus ComplainStatus { get; set; } = ComplainStatus.Open;
+        public string? FileName { get; set; }
+        public IFormFile? file { get; set; }
+
+        public int CategoryId { get; set; }
+        public Categories category { get; set; }
+         
 
 
         // public User? PersonUser { get; set; }

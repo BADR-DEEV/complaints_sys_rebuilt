@@ -9,11 +9,12 @@ namespace complaints_back.models.Users
     public class User : IdentityUser
     {
         public required string DisplayName { get; set; }
-        
+
         public string Role { get; set; } = "User";
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public string? AccessToken { get; set; } = null;
-       
+        public string? RefreshToken { get; set; }
+        public DateTime RefreshTokenExpiryTime { get; set; }
+
 
     }
 }

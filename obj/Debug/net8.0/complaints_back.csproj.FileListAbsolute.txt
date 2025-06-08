@@ -145,3 +145,4 @@ C:\dev\personal\complaints_sys\complaints_back\obj\Debug\net8.0\refint\complaint
 C:\dev\personal\complaints_sys\complaints_back\obj\Debug\net8.0\complaints_back.pdb
 C:\dev\personal\complaints_sys\complaints_back\obj\Debug\net8.0\complaints_back.genruntimeconfig.cache
 C:\dev\personal\complaints_sys\complaints_back\obj\Debug\net8.0\ref\complaints_back.dll
+C:\dev\personal\complaints_sys\complaints_back\obj\Debug\net8.0\complaints_back.sourcelink.json

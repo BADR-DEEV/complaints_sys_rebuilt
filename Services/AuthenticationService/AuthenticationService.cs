@@ -4,6 +4,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Net;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -13,6 +14,7 @@ using complaints_back.DTOs;
 using complaints_back.models;
 using complaints_back.models.Users;
 using complaints_back.Validations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
@@ -53,6 +55,71 @@ namespace complaints_back.Services.AuthenticationService
         }
 
 
+        public async Task<ServiceResponse<UserResponseDto>> LoginUser(UserLoginDto authenticateUser)
+        {
+            var validationResult = new UserLoginValidation().Validate(authenticateUser);
+            if (!validationResult.IsValid)
+            {
+                return new ServiceResponse<UserResponseDto>
+                {
+                    Success = false,
+                    Message = string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)),
+                    StatusCode = 400,
+                    Data = null
+                };
+            }
+
+            var user = await _userManager.FindByEmailAsync(authenticateUser.Email);
+            if (user == null || !user.EmailConfirmed)
+            {
+                return new ServiceResponse<UserResponseDto>
+                {
+                    Success = false,
+                    Message = "Invalid email or email not confirmed",
+                    StatusCode = 400,
+                    Data = null
+                };
+            }
+
+            var result = await _signInManager.PasswordSignInAsync(user, authenticateUser.Password, false, lockoutOnFailure: false);
+            if (!result.Succeeded)
+            {
+                return new ServiceResponse<UserResponseDto>
+                {
+                    Success = false,
+                    Message = "Invalid password",
+                    StatusCode = 400,
+                    Data = null
+                };
+            }
+
+            // Generate JWT token for authenticated user
+            var jwtToken = await GenerateJwtToken(user);
+            string refreshToken = GenerateRefreshToken();
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7); // or longer
+
+            await _userManager.UpdateAsync(user);
+
+            // Return it in the response
+            return new ServiceResponse<UserResponseDto>
+            {
+                Success = true,
+                Message = "Login successful",
+                StatusCode = 200,
+                Data = new UserResponseDto
+                {
+                    Email = user.Email,
+                    DisplayName = user.DisplayName,
+                    Role = user.Role,
+                    CreatedAt = user.CreatedAt,
+                    AccessToken = jwtToken,
+                    RefreshToken = refreshToken,
+                    RefreshTokenExpiryTime = user.RefreshTokenExpiryTime
+                }
+            };
+
+        }
         public async Task<ServiceResponse<UserResponseDto>> RegisterUser(UserRegisterDto authenticateUser)
         {
             var validationResult = new UserRegisterValidation().Validate(authenticateUser);
@@ -92,6 +159,7 @@ namespace complaints_back.Services.AuthenticationService
 
 
             };
+            var token = GenerateJwtToken(user);
 
             var createResult = await _userManager.CreateAsync(user, authenticateUser.Password);
             if (!createResult.Succeeded)
@@ -114,41 +182,6 @@ namespace complaints_back.Services.AuthenticationService
                 StatusCode = 200,
                 Data = user == null ? null : _mapper.Map<UserResponseDto>(user)
             };
-        }
-
-        public async Task<string> GenerateJwtToken(User user)
-        {
-            var userRoles = await _userManager.GetRolesAsync(user);
-
-            var authClaims = new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, user.Id),
-        new Claim(ClaimTypes.Name, user.DisplayName),
-
-        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-        new Claim("Email", user.Email ?? string.Empty),
-
-
-
-
-
-    };
-
-            foreach (var role in userRoles)
-            {
-                authClaims.Add(new Claim(ClaimTypes.Role, role));
-            }
-
-            var Security = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Token").Value ?? "some default key"));
-            var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                expires: DateTime.UtcNow.AddHours(3),
-                claims: authClaims,
-                signingCredentials: new SigningCredentials(Security, SecurityAlgorithms.HmacSha256)
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
 
@@ -197,13 +230,8 @@ namespace complaints_back.Services.AuthenticationService
                     Confirm Email
                 </a>
             </p>
-
-           
-
-         
-
             <p>If you did not sign up for this account, please ignore this email.</p>
-{safeLink}
+                    {safeLink}
             <p>Thanks,<br />
 
             
@@ -216,62 +244,70 @@ namespace complaints_back.Services.AuthenticationService
             return confirmationLink;
         }
 
-        public async Task<ServiceResponse<UserResponseDto>> LoginUser(UserLoginDto authenticateUser)
+
+
+        public async Task<string> GenerateJwtToken(User user)
         {
-            var validationResult = new UserLoginValidation().Validate(authenticateUser);
-            if (!validationResult.IsValid)
+            var userRoles = await _userManager.GetRolesAsync(user);
+
+            var authClaims = new List<Claim>
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.Id),
+        new Claim(ClaimTypes.Name, user.DisplayName),
+        new Claim(ClaimTypes.Email, user.Email),
+
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        new Claim("Email", user.Email ?? string.Empty),
+    };
+
+            foreach (var role in userRoles)
             {
-                return new ServiceResponse<UserResponseDto>
-                {
-                    Success = false,
-                    Message = string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)),
-                    StatusCode = 400,
-                    Data = null
-                };
+                authClaims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            var user = await _userManager.FindByEmailAsync(authenticateUser.Email);
-            if (user == null || !user.EmailConfirmed)
-            {
-                return new ServiceResponse<UserResponseDto>
-                {
-                    Success = false,
-                    Message = "Invalid email or email not confirmed",
-                    StatusCode = 400,
-                    Data = null
-                };
-            }
+            var Security = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Token").Value ?? "some default key"));
+            var token = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                expires: DateTime.UtcNow.AddHours(3),
+                claims: authClaims,
+                signingCredentials: new SigningCredentials(Security, SecurityAlgorithms.HmacSha256)
+            );
 
-            var result = await _signInManager.PasswordSignInAsync(user, authenticateUser.Password, false, lockoutOnFailure: false);
-            if (!result.Succeeded)
-            {
-                return new ServiceResponse<UserResponseDto>
-                {
-                    Success = false,
-                    Message = "Invalid password",
-                    StatusCode = 400,
-                    Data = null
-                };
-            }
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
 
-            // Generate JWT token for authenticated user
-            var jwtToken = await GenerateJwtToken(user);
+        public string GenerateRefreshToken()
+        {
+            var randomBytes = new byte[64];
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(randomBytes);
+            return Convert.ToBase64String(randomBytes);
+        }
 
-            return new ServiceResponse<UserResponseDto>
+
+        public ClaimsPrincipal? GetPrincipalFromExpiredToken(string? token)
+        {
+            var tokenValidationParameters = new TokenValidationParameters
             {
-                Success = true,
-                Message = "Login successful",
-                StatusCode = 200,
-                Data = new UserResponseDto
-                {
-                    Email = user.Email,
-                    DisplayName = user.DisplayName,
-                    Role = user.Role,
-                    CreatedAt = user.CreatedAt,
-                    AccessToken = jwtToken
-                }
+                ValidateAudience = false,
+                ValidateIssuer = false,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["AppSettings:Token"]!)),
+                ValidateLifetime = false // ❗ Important: don't check for expiry here
             };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out var securityToken);
+            if (securityToken is not JwtSecurityToken jwtSecurityToken ||
+                !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+            {
+                throw new SecurityTokenException("Invalid token");
+            }
+
+            return principal;
         }
 
     }
+
 }
