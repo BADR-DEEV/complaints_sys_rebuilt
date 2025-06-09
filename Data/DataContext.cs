@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using complaints_back.models;
+using complaints_back.models.Complaints;
 using complaints_back.models.Users;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -16,9 +17,14 @@ namespace complaints_back.Data
         {
         }
 
+        public DbSet<Categories> Categories { get; set; }
+        public DbSet<Complaint> Complaints { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+
 
             modelBuilder.Entity<Categories>().HasData(
                 new Categories

@@ -10,7 +10,7 @@ namespace complaints_back.Services
 {
     public interface IComplainService
     {
-        // Task<ServiceResponse<List<Complain>>> GetComplaints();
+        Task<ServiceResponse<List<Complaint>>> GetComplaints();
         // Task<ServiceResponse<Complain>> GetComplaint(int id);
         Task<ServiceResponse<Complaint>> SubmitComplaint(AddComplaintDto complain);
         // Task<ServiceResponse<Complain>> UpdateComplaint(UpdateComplainDto complain);

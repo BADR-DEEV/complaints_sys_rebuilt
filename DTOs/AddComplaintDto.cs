@@ -9,9 +9,9 @@ namespace complaints_back.DTOs
     public class AddComplaintDto
     {
 
-        public string title { get; set; }
-        public string description { get; set; }
-        public int CategoryId { get; set; }
+        public string ComplainTitle { get; set; }
+        public string ComplainDescription { get; set; }
+        public int CategoriesId { get; set; }
         public IFormFile? Image { get; set; }
 
 

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
+using complaints_back.models.Users;
 using static complaints_back.models.Complaints.ComplaintStatus;
 
 namespace complaints_back.models.Complaints
@@ -15,18 +17,17 @@ namespace complaints_back.models.Complaints
         public DateTime ComplainDateTime { get; set; } = DateTime.Now;
         public ComplainStatus ComplainStatus { get; set; } = ComplainStatus.Open;
         public string? FileName { get; set; }
+        [NotMapped]
         public IFormFile? file { get; set; }
 
-        public int CategoryId { get; set; }
-        public Categories category { get; set; }
-         
+        //forign key category id
+        public int CategoriesId { get; set; }
+        public Categories Categories { get; set; }
 
-
-        // public User? PersonUser { get; set; }
-
-        // [ForeignKey("Category")]
-        // public int CategoryId { get; set; }
-        // public virtual Category? Category { get; set; }
+        //forign key user id
+        
+        public string UserId { get; set; }
+        public User User { get; set; }
 
     }
 }

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using complaints_back.Dtos;
 using complaints_back.DTOs;
+using complaints_back.models.Complaints;
 using complaints_back.models.Users;
 
 namespace complaints_back
@@ -24,6 +25,8 @@ namespace complaints_back
             CreateMap<User, UserLoginDto>();
             CreateMap<User, UserResponseDto>();
             CreateMap<UserResponseDto, User>();
+            CreateMap<AddComplaintDto, Complaint>();
+            CreateMap<Complaint, AddComplaintDto>();
             // CreateMap<User, PersonUserDto>();
             // CreateMap<PersonUserDto, User>();
 

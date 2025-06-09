@@ -33,8 +33,8 @@ namespace complaints_back.Validations
     {
         public ComplaintUserValidation()
         {
-            RuleFor(x => x.title).NotEmpty().WithMessage("title is Required").NotNull();
-            RuleFor(x => x.CategoryId).NotEmpty().WithMessage("Category is Required").NotNull();
+            RuleFor(x => x.ComplainTitle).NotEmpty().WithMessage("title is Required").NotNull();
+            RuleFor(x => x.CategoriesId).NotEmpty().WithMessage("Category is Required").NotNull();
 
             // RuleFor(x => x.description).NotEmpty().MinimumLength(6).WithMessage("Password is required").Length(6, 100).NotNull();
         }
