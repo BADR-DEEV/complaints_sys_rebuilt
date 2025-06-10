@@ -57,8 +57,9 @@ namespace complaints_back.Controllers
         }
 
         [HttpPost("CreateComplaint")]
+        [Consumes("multipart/form-data")]
 
-        public async Task<ActionResult<ServiceResponse<Complaint>>> CreateComplaint([FromBody] AddComplaintDto complaint)
+        public async Task<ActionResult<ServiceResponse<Complaint>>> CreateComplaint([FromForm] AddComplaintDto complaint)
         {
             // Logic to create a new user complaint
             Helpers<Complaint> helper = new();

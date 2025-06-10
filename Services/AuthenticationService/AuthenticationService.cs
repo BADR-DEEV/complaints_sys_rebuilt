@@ -20,7 +20,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.IdentityModel.Tokens;
-
+ // "applicationUrl": "http://0.0.0.0:5189",
 namespace complaints_back.Services.AuthenticationService
 {
     public class AuthenticationService : IAuthenticationService
@@ -178,7 +178,7 @@ namespace complaints_back.Services.AuthenticationService
             return new ServiceResponse<UserResponseDto>
             {
                 Success = true,
-                Message = $"Email sent successfully. Please confirm your email to complete registration: {link}",
+                Message = $"{link}",
                 StatusCode = 200,
                 Data = user == null ? null : _mapper.Map<UserResponseDto>(user)
             };

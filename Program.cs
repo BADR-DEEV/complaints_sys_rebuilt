@@ -15,6 +15,8 @@ using Microsoft.AspNetCore.Mvc.Routing;
 using complaints_back.Helpers;
 using complaints_back.Services.ComplaintService;
 using System.Security.Claims;
+using Microsoft.Extensions.FileProviders;
+using complaints_back.Services.CategoriesService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,6 +61,7 @@ builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IComplainService, ComplaintService>();
+builder.Services.AddScoped<ICategoriesService, CategoriesService>();
 builder.Services.AddScoped<EmailSenderService>();
 // 
 
@@ -70,6 +73,10 @@ builder.Services.AddAuthentication(options =>
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultSignInScheme = JwtBearerDefaults.AuthenticationScheme;
+
+
+
+
 })
 
 
@@ -87,6 +94,26 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["AppSettings:Token"]))
     };
+    //custom resposne for the authrize 
+    options.Events = new JwtBearerEvents
+    {
+        OnChallenge = context =>
+        {
+            context.HandleResponse(); // suppress the default response
+
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            context.Response.ContentType = "application/json";
+
+            var result = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                success = false,
+                message = "Unauthorized",
+
+            });
+
+            return context.Response.WriteAsync(result);
+        }
+    };
 });
 
 
@@ -100,6 +127,13 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
+app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(builder.Environment.ContentRootPath, "Uploads")),
+    RequestPath = "/images" // This is the URL path where files will be accessible
+});
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseHttpsRedirection();

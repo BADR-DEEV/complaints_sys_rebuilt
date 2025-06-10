@@ -25,11 +25,13 @@ namespace complaints_back.Services.ComplaintService
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMapper _mapper;
         private readonly UserManager<User> _userManager;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
         public ComplaintService(
 
             IConfiguration configuration,
-            IHttpContextAccessor httpContextAccessor, DataContext context, UserManager<User> userManager, IMapper mapper)
+            IHttpContextAccessor httpContextAccessor, DataContext context,
+             UserManager<User> userManager, IMapper mapper, IWebHostEnvironment webHostEnvironment)
         {
 
             _configuration = configuration;
@@ -37,6 +39,7 @@ namespace complaints_back.Services.ComplaintService
             _context = context;
             _userManager = userManager;
             _mapper = mapper;
+            _webHostEnvironment = webHostEnvironment;
 
         }
 
@@ -63,14 +66,14 @@ namespace complaints_back.Services.ComplaintService
 
                 if (serviceResponse.Data == null)
                 {
-                    serviceResponse.Message = "No data found";
+                    serviceResponse.Message = "No Complaints were found";
                     serviceResponse.Success = false;
                     serviceResponse.StatusCode = 404;
                 }
 
                 else
                 {
-                    serviceResponse.Message = "Data found";
+                    serviceResponse.Message = serviceResponse.Data.Count == 0 ? "No Complaints were found" : $"{serviceResponse.Data.Count}";
                     serviceResponse.Success = true;
                     serviceResponse.StatusCode = 200;
                 }
@@ -137,19 +140,71 @@ namespace complaints_back.Services.ComplaintService
                     };
 
                 }
+                string? uniqueFileName = null;
 
-
-                _context.Complaints.Add(complaint);
-                await _context.SaveChangesAsync();
-
-                return new ServiceResponse<Complaint>
+                if (addComplaint.Image != null)
                 {
-                    Success = true,
-                    Data = complaint,
-                    Message = "hhhhh",
-                    StatusCode = 201,
+                    // Ensure the uploads directory exists
+                    string uploadsFolder = Path.Combine(_webHostEnvironment.ContentRootPath, "Uploads", "complaints"); // Match with RequestPath configuration
+                    if (!Directory.Exists(uploadsFolder))
+                    {
+                        Directory.CreateDirectory(uploadsFolder);
+                    }
+                    uniqueFileName = Guid.NewGuid().ToString() + "_" + addComplaint.Image.FileName;
+                    string filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
-                };
+
+                    try
+                    {
+                        using (var fileStream = new FileStream(filePath, FileMode.Create))
+                        {
+                            //write to filestream
+                            await addComplaint.Image.CopyToAsync(fileStream);
+                        }
+
+                        // Construct the public URL for the image
+                        // This assumes your StaticFiles RequestPath is "/images" as configured in Program.cs
+                        // and that "complaints" is a subfolder within your "Uploads" directory.
+                        var imageUrl = $"{_httpContextAccessor.HttpContext?.Request.Scheme}://{_httpContextAccessor.HttpContext?.Request.Host}/images/complaints/{uniqueFileName}";
+                        complaint.FileName = imageUrl;
+
+                    }
+                    catch (Exception ex)
+                    {
+
+                        return new ServiceResponse<Complaint>
+                        {
+                            Success = false,
+                            Data = null,
+                            Message = "error in uploading image",
+                            StatusCode = 500,
+
+                        };
+                    }
+
+                    _context.Complaints.Add(complaint);
+                    await _context.SaveChangesAsync();
+
+                    return new ServiceResponse<Complaint>
+                    {
+                        Success = true,
+                        Data = complaint,
+                        Message = "hhhhh",
+                        StatusCode = 201,
+
+                    };
+                }
+                else
+                {
+                    return new ServiceResponse<Complaint>
+                    {
+                        Success = true,
+                        Data = complaint,
+                        Message = "No Image was uploaded",
+                        StatusCode = 201,
+
+                    };
+                }
             }
             catch (Exception e)
             {

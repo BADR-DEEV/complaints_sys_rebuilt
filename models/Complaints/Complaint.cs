@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using complaints_back.models.Users;
 using static complaints_back.models.Complaints.ComplaintStatus;
@@ -18,7 +19,8 @@ namespace complaints_back.models.Complaints
         public ComplainStatus ComplainStatus { get; set; } = ComplainStatus.Open;
         public string? FileName { get; set; }
         [NotMapped]
-        public IFormFile? file { get; set; }
+        [JsonIgnore]
+        public IFormFile? Image { get; set; }
 
         //forign key category id
         public int CategoriesId { get; set; }

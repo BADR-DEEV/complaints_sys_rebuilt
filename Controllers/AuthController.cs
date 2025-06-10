@@ -69,6 +69,8 @@ namespace complaints_back.Controllers
                 response.Success = false;
                 response.Message = "Email or token is missing.";
                 response.StatusCode = 400;
+                return BadRequest(response);
+
             }
 
             var user = await _userManager.FindByEmailAsync(email);
@@ -77,6 +79,7 @@ namespace complaints_back.Controllers
                 response.Success = false;
                 response.Message = "User not found.";
                 response.StatusCode = 404;
+                return NotFound(response);
 
             }
 
@@ -88,6 +91,7 @@ namespace complaints_back.Controllers
                 response.Success = false;
                 response.Message = "Email confirmation failed.";
                 response.StatusCode = 400;
+                return BadRequest(response);
             }
 
             user.LockoutEnd = null;
@@ -110,7 +114,7 @@ namespace complaints_back.Controllers
 
 
             // Build the deep link with token (you may want to URL encode the token again)
-            var appDeepLink = $"complaintsapp://confirm-email?email={WebUtility.UrlEncode(email)}&token={WebUtility.UrlEncode(token)}&jwt={WebUtility.UrlEncode(jwtToken)}&response={response}";
+            var appDeepLink = $"complaintsapp://confirm-email?email={WebUtility.UrlEncode(email)}&token={WebUtility.UrlEncode(token)}&response={response.StatusCode}";
 
             // Redirect to the Flutter app via deep link
             return Redirect(appDeepLink);
