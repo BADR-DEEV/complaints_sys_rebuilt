@@ -17,6 +17,9 @@ using complaints_back.Services.ComplaintService;
 using System.Security.Claims;
 using Microsoft.Extensions.FileProviders;
 using complaints_back.Services.CategoriesService;
+using complaints_back.Services.AdminAuthenticationService;
+using complaints_back.Services.AdminUserService;
+using complaints_back.Services.AdminServices.AdminComplaintService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +28,19 @@ builder.Services.AddDbContext<DataContext>(opt =>
 {
     opt.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"));
 });
-
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+        policy =>
+        {
+            policy
+                .WithOrigins("http://localhost:3000") // your Next.js frontend origin
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials(); // important for cookies
+        });
+});
 // 🔥 Register Identity properly
 builder.Services.AddIdentity<User, IdentityRole>(
     options =>
@@ -53,6 +68,7 @@ builder.Services.AddSingleton<IUrlHelperFactory, UrlHelperFactory>();
 
 // Register Identity API endpoints
 builder.Services.AddSwaggerGen();
+builder.Services.AddHttpContextAccessor();
 // Add services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -62,6 +78,9 @@ builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IComplainService, ComplaintService>();
 builder.Services.AddScoped<ICategoriesService, CategoriesService>();
+builder.Services.AddScoped<IAdminAuthenticationService, AdminAuthenticationService>();
+builder.Services.AddScoped<IAdminComplaintService, AdminComplaintService>();
+builder.Services.AddScoped<IAdminUsersService, AdminUsersService>();
 builder.Services.AddScoped<EmailSenderService>();
 // 
 
@@ -92,6 +111,8 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
+        ClockSkew = TimeSpan.Zero,
+
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["AppSettings:Token"]))
     };
     //custom resposne for the authrize 
@@ -112,6 +133,18 @@ builder.Services.AddAuthentication(options =>
             });
 
             return context.Response.WriteAsync(result);
+        }
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            if (context.Request.Cookies.ContainsKey("accessToken"))
+            {
+                context.Token = context.Request.Cookies["accessToken"];
+            }
+            return Task.CompletedTask;
         }
     };
 });
@@ -140,7 +173,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseCors(MyAllowSpecificOrigins);
 // 🔥 Register Identity API endpoints
 // app.MapIdentityApi<IdentityUser>();
 
@@ -150,7 +183,7 @@ app.MapControllers();
 async Task SeedRoles(IServiceProvider serviceProvider)
 {
     var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    string[] roles = { "Admin", "User" };
+    string[] roles = { "SuperAdmin", "Admin", "User" };
 
     foreach (var role in roles)
     {
@@ -161,9 +194,40 @@ async Task SeedRoles(IServiceProvider serviceProvider)
     }
 }
 
+async Task SeedSuperAdmin(IServiceProvider serviceProvider)
+{
+    var userManager = serviceProvider.GetRequiredService<UserManager<User>>();
+    var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+    string superAdminEmail = "superadmin@example.com";
+    var superAdmin = await userManager.FindByEmailAsync(superAdminEmail);
+
+    if (superAdmin == null)
+    {
+        superAdmin = new User
+        {
+            UserName = superAdminEmail,
+            Email = superAdminEmail,
+            DisplayName = "Super Admin",
+            Role = "SuperAdmin",
+            CreatedAt = DateTime.UtcNow,
+            EmailConfirmed = true // no need for email confirmation for admin
+        };
+
+        var result = await userManager.CreateAsync(superAdmin, "SuperAdmin123!"); // default password
+        if (result.Succeeded)
+        {
+            await userManager.AddToRoleAsync(superAdmin, "SuperAdmin");
+        }
+    }
+}
+
 using (var scope = app.Services.CreateScope())
 {
-    await SeedRoles(scope.ServiceProvider);
+    var services = scope.ServiceProvider;
+    await SeedRoles(services);
+    await SeedSuperAdmin(services);
 }
+
 
 app.Run();

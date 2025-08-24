@@ -20,7 +20,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.IdentityModel.Tokens;
- // "applicationUrl": "http://0.0.0.0:5189",
+// "applicationUrl": "http://0.0.0.0:5189",
 namespace complaints_back.Services.AuthenticationService
 {
     public class AuthenticationService : IAuthenticationService
@@ -97,7 +97,7 @@ namespace complaints_back.Services.AuthenticationService
             var jwtToken = await GenerateJwtToken(user);
             string refreshToken = GenerateRefreshToken();
             user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7); // or longer
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(180); // or longer
 
             await _userManager.UpdateAsync(user);
 
@@ -271,7 +271,7 @@ namespace complaints_back.Services.AuthenticationService
             var token = new JwtSecurityToken(
                 issuer: _configuration["AppSettings:Issuer"],
                 audience: _configuration["AppSettings:Audience"],
-                expires: DateTime.UtcNow.AddHours(3),
+                expires: DateTime.UtcNow.AddDays(3),
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(Security, SecurityAlgorithms.HmacSha256)
             );
@@ -288,7 +288,7 @@ namespace complaints_back.Services.AuthenticationService
         }
 
 
-       
+
 
     }
 

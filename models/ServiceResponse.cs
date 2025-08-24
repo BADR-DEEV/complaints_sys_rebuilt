@@ -14,4 +14,18 @@ namespace complaints_back.models
 
 
     }
+
+    public class ServiceResponseAdmin<T>
+    {
+        public bool Success { get; set; } = true;
+        public string Message { get; set; } = string.Empty;
+        public T? Data { get; set; } = default;
+        public int StatusCode { get; set; }
+
+        public int TotalCount { get; set; }
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+
+
+    }
 }

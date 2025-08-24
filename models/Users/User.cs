@@ -11,7 +11,7 @@ namespace complaints_back.models.Users
     {
         public required string DisplayName { get; set; }
 
-        public string Role { get; set; } = "User";
+        public string Role { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public string? RefreshToken { get; set; }
         public DateTime RefreshTokenExpiryTime { get; set; }

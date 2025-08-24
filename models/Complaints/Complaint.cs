@@ -15,6 +15,7 @@ namespace complaints_back.models.Complaints
 
         public string ComplainTitle { get; set; } = string.Empty;
         public string ComplainDescription { get; set; } = string.Empty;
+        public string ComplaintMessage { get; set; } = string.Empty;
         public DateTime ComplainDateTime { get; set; } = DateTime.Now;
         public ComplainStatus ComplainStatus { get; set; } = ComplainStatus.Open;
         public string? FileName { get; set; }

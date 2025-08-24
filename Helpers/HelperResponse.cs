@@ -28,6 +28,8 @@ namespace complaints_back.Helpers
                     return BadRequest(unifiedResponse);
                 case 200:
                     return Ok(unifiedResponse);
+                case 403:
+                   return StatusCode(403, unifiedResponse);
                 case 201:
                     return Created("", unifiedResponse);
                 case 404:

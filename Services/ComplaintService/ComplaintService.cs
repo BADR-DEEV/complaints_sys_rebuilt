@@ -56,7 +56,7 @@ namespace complaints_back.Services.ComplaintService
                 {
                     serviceResponse.Message = "User not found, (log out)";
                     serviceResponse.Success = false;
-                    serviceResponse.StatusCode = 400;
+                    serviceResponse.StatusCode = 404;
 
                 }
                 serviceResponse.Data = await _context.Complaints

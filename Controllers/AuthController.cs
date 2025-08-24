@@ -129,42 +129,49 @@ namespace complaints_back.Controllers
         public async Task<IActionResult> RefreshToken(TokenApiModel model)
         {
             var _getPrinc = new GetPrincipalFromExpiredToken();
+            var result = _getPrinc.GetPrincipal(model.AccessToken, _Configuration);
 
-            var principal = _getPrinc.GetPrincipal(model.AccessToken, _Configuration);
+            if (result.Principal == null)
+            {
+                return Unauthorized(new { message = result.ErrorMessage ?? "Invalid token." });
+            }
 
-            var email = principal?.FindFirst(ClaimTypes.Email)?.Value;
-
+            var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
 
             if (email == null)
             {
-                return Unauthorized(new { message = "The email was not found from the provided token" });
-
+                return Unauthorized(new { message = "The email was not found in the token." });
             }
-            else
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null || user.RefreshToken != model.RefreshToken)
             {
-                var user = await _userManager.FindByEmailAsync(email);
-
-
-                if (user == null || user.RefreshToken != model.RefreshToken)
+                return Unauthorized(new
                 {
-
-                    return Unauthorized(new { message = $"Invalid refresh token {user.Email}........ {user.RefreshToken}........ {user.RefreshTokenExpiryTime}" });
-                }
-
-                var newAccessToken = await _AuthenticateUserService.GenerateJwtToken(user);
-                var newRefreshToken = _AuthenticateUserService.GenerateRefreshToken();
-
-                user.RefreshToken = newRefreshToken;
-                user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-                await _userManager.UpdateAsync(user);
-
-                return Ok(new
-                {
-                    AccessToken = newAccessToken,
-                    RefreshToken = newRefreshToken
+                    message = "Invalid refresh token or user not found.",
+                    providedRefreshToken = model.RefreshToken,
+                    storedRefreshToken = user?.RefreshToken,
+                    tokenExpiry = user?.RefreshTokenExpiryTime
                 });
             }
+
+            var newAccessToken = await _AuthenticateUserService.GenerateJwtToken(user);
+            var newRefreshToken = _AuthenticateUserService.GenerateRefreshToken();
+
+            user.RefreshToken = newRefreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            await _userManager.UpdateAsync(user);
+
+            return Ok(new
+            {
+                AccessToken = newAccessToken,
+                RefreshToken = newRefreshToken,
+                message = "success",
+                statusCode = 200
+            });
         }
+
+
 
 
 

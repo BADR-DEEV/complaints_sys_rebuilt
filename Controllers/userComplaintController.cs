@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace complaints_back.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Admin, User")]
+    [Authorize(Roles = "Admin, User, SuperAdmin")]
     [Route("api/[controller]")]
     public class UserComplaintsController : Controller
     {
@@ -36,7 +36,7 @@ namespace complaints_back.Controllers
         [HttpGet]
         [Route("GetComplaints")]
 
-        public async Task<ActionResult<ServiceResponse<List<Complaint>>>> GetAllComplains()
+        public async Task<ActionResult<ServiceResponse<List<Complaint>>>> GetMyComplains()
         {
 
 
