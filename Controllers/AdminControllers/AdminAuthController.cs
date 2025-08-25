@@ -36,5 +36,15 @@ namespace complaints_back.Controllers
             return helper.HandleResponse(await _AuthenticateUserService.LoginUserDashboard(user));
         }
 
+        [HttpPost("Logout")]
+
+        public async Task<ActionResult<ServiceResponse<string>>> Logout()
+        {
+            Helpers<string> helper = new();
+            return helper.HandleResponse(await _AuthenticateUserService.LogoutUserDashboard());
+        }
+
+
+
     }
 }

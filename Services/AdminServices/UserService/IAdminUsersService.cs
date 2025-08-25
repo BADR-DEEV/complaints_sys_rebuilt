@@ -10,7 +10,7 @@ namespace complaints_back.Services.AdminServices.AdminComplaintService
 {
     public interface IAdminUsersService
     {
-        Task<ServiceResponseAdmin<List<User>>> GetAllUsers(int pageNumber, int pageSize);
+        Task<ServiceResponseAdmin<List<UserDto>>> GetAllUsers(int pageNumber, int pageSize);
         Task<ServiceResponseAdmin<User>> CreateUser(CreateUserDto createUserDto);
         Task<ServiceResponseAdmin<string>> DeleteUser(string userId);
 

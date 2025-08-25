@@ -20,6 +20,7 @@ using complaints_back.Services.CategoriesService;
 using complaints_back.Services.AdminAuthenticationService;
 using complaints_back.Services.AdminUserService;
 using complaints_back.Services.AdminServices.AdminComplaintService;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,19 +29,18 @@ builder.Services.AddDbContext<DataContext>(opt =>
 {
     opt.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"));
 });
-var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: MyAllowSpecificOrigins,
-        policy =>
-        {
-            policy
-                .WithOrigins("http://localhost:3000") // your Next.js frontend origin
-                .AllowAnyHeader()
-                .AllowAnyMethod()
-                .AllowCredentials(); // important for cookies
-        });
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("https://localhost:3000") // frontend URL
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); // required for cookies
+    });
 });
+
 // 🔥 Register Identity properly
 builder.Services.AddIdentity<User, IdentityRole>(
     options =>
@@ -87,70 +87,94 @@ builder.Services.AddScoped<EmailSenderService>();
 var jwtSettings = builder.Configuration.GetSection("AppSettings");
 var secretKey = jwtSettings["Token"];
 
-builder.Services.AddAuthentication(options =>
+// builder.Services.AddAuthentication(options =>
+// {
+//     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+//     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+//     options.DefaultSignInScheme = JwtBearerDefaults.AuthenticationScheme;
+
+
+
+
+// })
+
+
+// .AddJwtBearer(options =>
+// {
+//     options.TokenValidationParameters = new TokenValidationParameters
+//     {
+//         RoleClaimType = ClaimTypes.Role,
+//         NameClaimType = ClaimTypes.NameIdentifier,
+//         ValidateIssuer = true,
+//         ValidateAudience = true,
+//         ValidateLifetime = true,
+//         ValidateIssuerSigningKey = true,
+//         ValidIssuer = jwtSettings["Issuer"],
+//         ValidAudience = jwtSettings["Audience"],
+//         ClockSkew = TimeSpan.Zero,
+
+//         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["AppSettings:Token"]))
+//     };
+//     //custom resposne for the authrize 
+//     options.Events = new JwtBearerEvents
+//     {
+//         OnMessageReceived = context =>
+//         {
+//             if (context.Request.Cookies.ContainsKey("accessToken"))
+//                 context.Token = context.Request.Cookies["accessToken"];
+//             return Task.CompletedTask;
+//         },
+//         OnChallenge = context =>
+//         {
+//             context.HandleResponse();
+//             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+//             context.Response.ContentType = "application/json";
+//             var result = JsonSerializer.Serialize(new { success = false, message = "Unauthorized" });
+//             return context.Response.WriteAsync(result);
+//         }
+//     };
+
+// });
+
+
+builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultSignInScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.None;
+});
+
+// Add JWT Bearer only (do not override default cookie)
+builder.Services.AddAuthentication()
+    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["AppSettings:Issuer"],
+            ValidAudience = builder.Configuration["AppSettings:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["AppSettings:Token"]))
+        };
+    });
 
 
+// builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
+//     .AddIdentityCookies();
 
-
-})
-
-
-.AddJwtBearer(options =>
+builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        RoleClaimType = ClaimTypes.Role,
-        NameClaimType = ClaimTypes.NameIdentifier,
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
-        ClockSkew = TimeSpan.Zero,
-
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["AppSettings:Token"]))
-    };
-    //custom resposne for the authrize 
-    options.Events = new JwtBearerEvents
-    {
-        OnChallenge = context =>
-        {
-            context.HandleResponse(); // suppress the default response
-
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            context.Response.ContentType = "application/json";
-
-            var result = System.Text.Json.JsonSerializer.Serialize(new
-            {
-                success = false,
-                message = "Unauthorized",
-
-            });
-
-            return context.Response.WriteAsync(result);
-        }
-    };
-
-    options.Events = new JwtBearerEvents
-    {
-        OnMessageReceived = context =>
-        {
-            if (context.Request.Cookies.ContainsKey("accessToken"))
-            {
-                context.Token = context.Request.Cookies["accessToken"];
-            }
-            return Task.CompletedTask;
-        }
-    };
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.HttpOnly = true;
 });
 
 
 
+builder.WebHost.UseUrls("https://localhost:5189");
 // Build the app
 var app = builder.Build();
 
@@ -171,9 +195,10 @@ app.UseSwagger();
 app.UseSwaggerUI();
 app.UseHttpsRedirection();
 
+app.UseCors("AllowFrontend");
+
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseCors(MyAllowSpecificOrigins);
 // 🔥 Register Identity API endpoints
 // app.MapIdentityApi<IdentityUser>();
 

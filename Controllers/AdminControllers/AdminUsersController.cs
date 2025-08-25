@@ -7,6 +7,7 @@ using complaints_back.models;
 using complaints_back.models.Users;
 using complaints_back.Services.AdminServices.AdminComplaintService;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace complaints_back.Controllers.AdminControllers
@@ -25,17 +26,16 @@ namespace complaints_back.Controllers.AdminControllers
             _Configuration = configuration;
 
         }
-
         [HttpGet]
         [Route("GetAllUsers")]
 
-        public async Task<ActionResult<ServiceResponseAdmin<List<User>>>> GetAllComplains(
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 10)
+        public async Task<ActionResult<ServiceResponseAdmin<List<UserDto>>>> GetAllComplains(
+                    [FromQuery] int pageNumber = 1,
+                    [FromQuery] int pageSize = 10)
         {
 
 
-            HelpersAdmin<List<User>> helper = new();
+            HelpersAdmin<List<UserDto>> helper = new();
             return helper.HandleResponse(await _adminUsersService.GetAllUsers(
                 pageNumber, pageSize
             ));

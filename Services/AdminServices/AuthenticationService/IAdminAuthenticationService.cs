@@ -12,6 +12,7 @@ namespace complaints_back.Services.AdminAuthenticationService
     {
 
         Task<ServiceResponse<UserResponseDto>> LoginUserDashboard(UserLoginDto authenticateUser);
-      
+        Task<ServiceResponse<string>> LogoutUserDashboard();
+
     }
 }

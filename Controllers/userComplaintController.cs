@@ -7,13 +7,16 @@ using complaints_back.Helpers;
 using complaints_back.models;
 using complaints_back.models.Complaints;
 using complaints_back.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace complaints_back.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Admin, User, SuperAdmin")]
+    // [Authorize(Roles = "Admin, User, SuperAdmin")]
+
     [Route("api/[controller]")]
     public class UserComplaintsController : Controller
     {
@@ -32,7 +35,7 @@ namespace complaints_back.Controllers
         }
 
 
-
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet]
         [Route("GetComplaints")]
 
@@ -49,12 +52,7 @@ namespace complaints_back.Controllers
         // This controller will handle user complaints
         // Add your action methods here
 
-        [HttpGet]
-        public IActionResult GetMyComplaints()
-        {
-            // Logic to get user complaints
-            return Ok(new { message = "List of user complaints" });
-        }
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 
         [HttpPost("CreateComplaint")]
         [Consumes("multipart/form-data")]

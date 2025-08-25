@@ -10,13 +10,14 @@ using complaints_back.Services;
 using complaints_back.Services.AdminUserService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
 using static complaints_back.models.Complaints.ComplaintStatus;
 
 namespace complaints_back.Controllers.AdminControllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin, SuperAdmin")]
+    [Authorize(AuthenticationSchemes = "Identity.Application", Roles = "Admin,SuperAdmin")]
     public class AdminComplaintController : ControllerBase
     {
         private readonly IAdminComplaintService _adminComplaintService;

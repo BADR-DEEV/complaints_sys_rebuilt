@@ -4,19 +4,18 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using complaints_back.models.Users;
 using static complaints_back.models.Complaints.ComplaintStatus;
 
-namespace complaints_back.models.Complaints
+namespace complaints_back.DTOs
 {
-    public class Complaint
+    public class ComplaintDto
     {
         public int Id { get; set; }
         public string ComplainTitle { get; set; } = string.Empty;
         public string ComplainDescription { get; set; } = string.Empty;
         public string ComplaintMessage { get; set; } = string.Empty;
-        public DateTime ComplainDateTime { get; set; }
-        public ComplainStatus ComplainStatus { get; set; } = ComplainStatus.Open;
+
+        public ComplainStatus ComplainStatus { get; set; }
         public string? FileName { get; set; }
         [NotMapped]
         [JsonIgnore]
@@ -24,18 +23,5 @@ namespace complaints_back.models.Complaints
 
         //forign key category id
         public int CategoriesId { get; set; }
-        public Categories Categories { get; set; }
-
-        //forign key user id
-
-        public string UserId { get; set; }
-        public User User { get; set; }
-        public string UserEmail { get; set; }
-
-
-
-        
-        
-
     }
 }

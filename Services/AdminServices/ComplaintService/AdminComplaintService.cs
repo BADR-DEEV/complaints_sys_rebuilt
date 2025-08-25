@@ -71,21 +71,42 @@ namespace complaints_back.Services.AdminUserService
                     return serviceResponse;
                 }
 
-                // Count total complaints
-                var totalComplaints = await _context.Complaints.CountAsync();
 
-                // Apply pagination
+
+                var totalCount = await _context.Complaints.CountAsync();
                 var complaints = await _context.Complaints
-                    .OrderByDescending(c => c.Id) // optional: keep newest first
-                    .Skip((pageNumber - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToListAsync();
+           .OrderByDescending(c => c.Id)
+           .Skip((pageNumber - 1) * pageSize)
+           .Take(pageSize)
+           .Include(c => c.Categories)
+           .Select(c => new Complaint
+           {
+               Id = c.Id,
+               ComplainTitle = c.ComplainTitle,
+               ComplainDescription = c.ComplainDescription,
+               ComplaintMessage = c.ComplaintMessage,
+               ComplainStatus = c.ComplainStatus,
+               FileName = c.FileName,
+               Image = c.Image,
+               CategoriesId = c.CategoriesId,
+               UserEmail = c.User.Email,
+               UserId = c.UserId,
+               Categories = c.Categories
+           })
+           .ToListAsync();
+
+
+                // Optionally, if you want to ensure the Category field is always filled (in case of manual mapping):
+                // {
+                //     if (complaint.Category == null && complaint.CategoryId != null)
+                //     {
+                //         complaint.Category = await _context.Categories.FindAsync(complaint.CategoryId);
+                //     }
+                // }
 
                 serviceResponse.Data = complaints;
 
-                serviceResponse.Message = complaints.Count == 0
-                    ? "No Complaints were found"
-                    : $"{complaints.Count} Complaints retrieved";
+                serviceResponse.Message = totalCount.ToString();
 
                 serviceResponse.Success = true;
                 serviceResponse.StatusCode = 200;

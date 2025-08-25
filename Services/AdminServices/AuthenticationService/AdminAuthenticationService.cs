@@ -52,7 +52,33 @@ namespace complaints_back.Services.AdminAuthenticationService
         }
 
 
+        public async Task<ServiceResponse<string>> LogoutUserDashboard()
+        {
+            // Sign out from ASP.NET Identity
+            await _signInManager.SignOutAsync();
 
+            // Expire the cookies
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true, // true in production
+                SameSite = SameSiteMode.None,
+                Path = "/",
+                Expires = System.DateTime.UtcNow.AddDays(-1) // expire in past
+            };
+
+            _httpContextAccessor.HttpContext!.Response.Cookies.Append("accessToken", "", cookieOptions);
+            _httpContextAccessor.HttpContext!.Response.Cookies.Append("refreshToken", "", cookieOptions);
+
+            return new ServiceResponse<string>
+            {
+                Success = true,
+                Message = "Logged out successfully",
+                StatusCode = 200,
+                Data = null
+            };
+        }
+    
         public async Task<ServiceResponse<UserResponseDto>> LoginUserDashboard(UserLoginDto authenticateUser)
         {
             var validationResult = new UserLoginValidation().Validate(authenticateUser);
@@ -113,24 +139,15 @@ namespace complaints_back.Services.AdminAuthenticationService
 
             var cookieOptions = new CookieOptions
             {
-                HttpOnly = true,          // ok
-                Secure = false,           // must be false for HTTP
-                SameSite = SameSiteMode.Lax, // or Strict; None is rejected over HTTP
+                HttpOnly = true,
+                Secure = true,               // true in production, false in local dev
+                SameSite = SameSiteMode.None,
                 Path = "/",
                 Expires = DateTime.UtcNow.AddDays(3)
             };
 
             _httpContextAccessor.HttpContext!.Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
-
-            // Optional: short-lived access token
-            _httpContextAccessor.HttpContext.Response.Cookies.Append("accessToken", jwtToken, new CookieOptions
-            {
-                HttpOnly = true,          // ok
-                Secure = false,           // must be false for HTTP
-                SameSite = SameSiteMode.Lax, // or Strict; None is rejected over HTTP
-                Path = "/",
-                Expires = DateTime.UtcNow.AddDays(3)
-            });
+            _httpContextAccessor.HttpContext!.Response.Cookies.Append("accessToken", jwtToken, cookieOptions);
 
             // Return it in the response
             return new ServiceResponse<UserResponseDto>

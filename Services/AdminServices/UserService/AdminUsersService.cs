@@ -7,6 +7,7 @@ using AutoMapper;
 using complaints_back.Data;
 using complaints_back.DTOs;
 using complaints_back.models;
+using complaints_back.models.Complaints;
 using complaints_back.models.Users;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -125,9 +126,9 @@ namespace complaints_back.Services.AdminServices.AdminComplaintService
 
 
 
-        public async Task<ServiceResponseAdmin<List<User>>> GetAllUsers(int pageNumber = 1, int pageSize = 10)
+        public async Task<ServiceResponseAdmin<List<UserDto>>> GetAllUsers(int pageNumber = 1, int pageSize = 10)
         {
-            var serviceResponse = new ServiceResponseAdmin<List<User>>();
+            var serviceResponse = new ServiceResponseAdmin<List<UserDto>>();
 
             try
             {
@@ -151,20 +152,45 @@ namespace complaints_back.Services.AdminServices.AdminComplaintService
                 }
 
                 // Count total complaints
-                var totalUsers = await _context.Users.CountAsync();
+                // var totalUsers = await _context.Users.CountAsync();
 
-                // Apply pagination
+                // // Apply pagination
+                // var users = await _context.Users
+                //     .OrderByDescending(c => c.Id) // optional: keep newest first
+                //     .Skip((pageNumber - 1) * pageSize)
+                //     .Take(pageSize)
+                //     .ToListAsync();
+
+
+
+                var totalUsers = await _context.Users.CountAsync();
                 var users = await _context.Users
-                    .OrderByDescending(c => c.Id) // optional: keep newest first
-                    .Skip((pageNumber - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToListAsync();
+            .OrderByDescending(c => c.Id)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(u => new UserDto
+            {
+                DisplayName = u.DisplayName,
+                id = u.Id,
+                Email = u.Email,
+                Role = u.Role,
+                Complaints = u.Complaints.Select(c => new ComplaintDto
+                {
+                    Id = c.Id,
+                    ComplainTitle = c.ComplainTitle,
+                    ComplainDescription = c.ComplainDescription,
+                    ComplaintMessage = c.ComplaintMessage,
+                    ComplainStatus = c.ComplainStatus,
+                    FileName = c.FileName,
+                    Image = c.Image,
+                    CategoriesId = c.CategoriesId
+                }).ToList()
+            })
+            .ToListAsync();
 
                 serviceResponse.Data = users;
 
-                serviceResponse.Message = users.Count == 0
-                    ? "No Users were found"
-                    : $"{users.Count} Users retrieved";
+                serviceResponse.Message = totalUsers.ToString();
 
                 serviceResponse.Success = true;
                 serviceResponse.StatusCode = 200;
